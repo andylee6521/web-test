@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>我的 Render 測試網站</title>
+</head>
+<body>
+  <h1>Hello World</h1>
+  <p>這是一個最基本的 Express + 靜態網站。</p>
+  <button id="btn">呼叫 API</button>
+  <p id="output"></p>
+
+  <script>
+    document.getElementById("btn").onclick = async () => {
+      const res = await fetch("/api/hello");
+      const data = await res.json();
+      document.getElementById("output").innerText = data.message;
+    };
+  </script>
+</body>
+</html>
