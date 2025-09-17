@@ -2,20 +2,108 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>我的 Render 測試網站</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 16px; line-height: 1.7; }
+    h1 { margin: 0 0 16px; font-size: 28px; }
+    form { display: grid; gap: 12px; margin: 24px 0; }
+    label { display: grid; gap: 6px; }
+    input[type="text"], textarea { padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+    textarea { min-height: 120px; }
+    button { padding: 10px 14px; background: #0d6efd; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+    .list { margin-top: 32px; }
+    .item { padding: 12px 0; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .item a { color: #0d6efd; text-decoration: none; }
+    .muted { color: #666; font-size: 14px; }
+  </style>
 </head>
 <body>
-  <h1>Hello World</h1>
-  <p>這是一個最基本的 Express + 靜態網站。</p>
-  <button id="btn">呼叫 API</button>
-  <p id="output"></p>
+  <h1>子網頁生成器</h1>
+  <p class="muted">輸入資料並生成子網頁，下方會列出已生成的頁面。</p>
+
+  <form id="createForm">
+    <label>
+      標題
+      <input type="text" id="title" placeholder="請輸入標題" required />
+    </label>
+    <label>
+      內文
+      <textarea id="content" placeholder="請輸入內文"></textarea>
+    </label>
+    <div class="row">
+      <label>
+        連結1
+        <input type="text" id="link1" placeholder="https://example.com" />
+      </label>
+      <label>
+        連結2
+        <input type="text" id="link2" placeholder="https://example.com" />
+      </label>
+    </div>
+    <div>
+      <button id="submitBtn" type="submit">送出生成</button>
+      <span id="result" class="muted"></span>
+    </div>
+  </form>
+
+  <section class="list">
+    <h2>已生成的頁面</h2>
+    <div id="list"></div>
+  </section>
 
   <script>
-    document.getElementById("btn").onclick = async () => {
-      const res = await fetch("/api/hello");
+    async function fetchList() {
+      const res = await fetch('/api/pages');
       const data = await res.json();
-      document.getElementById("output").innerText = data.message;
-    };
+      const container = document.getElementById('list');
+      container.innerHTML = '';
+      if (!data.items || data.items.length === 0) {
+        container.innerHTML = '<p class="muted">尚無資料</p>';
+        return;
+      }
+      for (const item of data.items) {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `<a href="${item.url}" target="_blank" rel="noopener">${item.filename}</a>`;
+        container.appendChild(div);
+      }
+    }
+
+    async function createPage(evt) {
+      evt.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const result = document.getElementById('result');
+      btn.disabled = true;
+      result.textContent = '建立中...';
+      try {
+        const payload = {
+          title: document.getElementById('title').value.trim(),
+          content: document.getElementById('content').value,
+          link1: document.getElementById('link1').value.trim(),
+          link2: document.getElementById('link2').value.trim()
+        };
+        const res = await fetch('/api/pages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '建立失敗');
+        result.innerHTML = `已建立：<a href="${data.url}" target="_blank" rel="noopener">${data.filename}</a>`;
+        (document.getElementById('createForm')).reset();
+        await fetchList();
+      } catch (err) {
+        result.textContent = err.message || '建立失敗';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('createForm').addEventListener('submit', createPage);
+    fetchList();
   </script>
 </body>
 </html>
