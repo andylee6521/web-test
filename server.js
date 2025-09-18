@@ -20,35 +20,58 @@ if (!fs.existsSync(PAGES_DIR)) {
   fs.mkdirSync(PAGES_DIR, { recursive: true });
 }
 
-// 產生頁面 HTML 字串
-function buildPageHtml({ title, content, link1, link2 }) {
+// 產生頁面 HTML 字串（深色樣式，包含：標題、クレジット、作品紹介）
+function buildPageHtml({ title, credits, intro, link1, link2, coverImageUrl }) {
   const safeTitle = String(title || "無標題");
-  const safeContent = String(content || "");
+  const safeIntro = String(intro || "");
+  const safeCredits = String(credits || "");
   const safeLink1 = String(link1 || "");
   const safeLink2 = String(link2 || "");
+  const safeCover = String(coverImageUrl || "");
+
   const linksHtml = [safeLink1, safeLink2]
     .filter(Boolean)
-    .map((url, idx) => `<li><a href="${url}" target="_blank" rel="noopener noreferrer">連結${idx + 1}</a></li>`) 
+    .map((url) => `<a href="${url}" target="_blank" rel="noopener" class="sales-button">${url}</a>`) 
     .join("");
+
+  const creditsHtml = safeCredits
+    ? `<div class="credit-container">${safeCredits
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map(line => `<div class="credit-item">${line}</div>`) 
+        .join("")}</div>`
+    : "";
+
   return `<!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${safeTitle}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 16px; line-height: 1.7; }
-    h1 { margin: 0 0 16px; font-size: 28px; }
-    .content { white-space: pre-wrap; }
-    ul { padding-left: 20px; }
-    a { color: #0d6efd; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', Arial, sans-serif; background-color: #121212; color: #E0E0E0; margin: 0; padding: 20px; }
+    .background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('${safeCover}') center/cover no-repeat; filter: blur(20px) opacity(0.25); z-index: -1; }
+    .container { max-width: 560px; margin: auto; background: #1E1E1E; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px rgba(255,255,255,0.1); }
+    h2, h3 { color: #FFFFFF; margin: 16px 0; }
+    a { color: #FFFFFF; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .cover { width: 100%; border-radius: 8px; }
+    .sales-button { display: block; margin: 10px 0; padding: 10px 12px; background: #FFFFFF; color: #000; border-radius: 4px; text-align: center; }
+    .credit-item { margin: 6px 0; }
+    .intro { white-space: pre-wrap; }
+    .footer { text-align: center; font-size: 12px; color: #888; margin-top: 24px; }
   </style>
-  </head>
+</head>
 <body>
-  <h1>${safeTitle}</h1>
-  <div class="content">${safeContent}</div>
-  ${linksHtml ? `<h3>相關連結</h3><ul>${linksHtml}</ul>` : ""}
-  <p><a href="/">返回主頁</a></p>
+  <div class="background"></div>
+  <div class="container">
+    <h2>${safeTitle}</h2>
+    ${safeCover ? `<img class="cover" src="${safeCover}" alt="cover" />` : ""}
+    ${linksHtml ? `<h3>配信サイト</h3><div class="sales-buttons">${linksHtml}</div>` : ""}
+    ${creditsHtml ? `<h3>クレジット</h3>${creditsHtml}` : ""}
+    ${safeIntro ? `<h3>作品紹介</h3><div class="intro">${safeIntro}</div>` : ""}
+    <div class="footer"><a href="/">トップへ戻る</a></div>
+  </div>
 </body>
 </html>`;
 }
@@ -56,7 +79,7 @@ function buildPageHtml({ title, content, link1, link2 }) {
 // 建立頁面：POST /api/pages
 app.post("/api/pages", (req, res) => {
   try {
-    const { title, content, link1, link2 } = req.body || {};
+    const { title, credits, intro, link1, link2, coverImageUrl } = req.body || {};
     if (!title) {
       return res.status(400).json({ error: "title 為必填" });
     }
@@ -67,7 +90,7 @@ app.post("/api/pages", (req, res) => {
     const filename = `${slug}.html`;
     const filePath = path.join(PAGES_DIR, filename);
 
-    const html = buildPageHtml({ title, content, link1, link2 });
+    const html = buildPageHtml({ title, credits, intro, link1, link2, coverImageUrl });
     fs.writeFileSync(filePath, html, "utf8");
 
     return res.status(201).json({ slug, filename, url: `/pages/${filename}` });

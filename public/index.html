@@ -30,8 +30,12 @@
       <input type="text" id="title" placeholder="請輸入標題" required />
     </label>
     <label>
-      內文
-      <textarea id="content" placeholder="請輸入內文"></textarea>
+      クレジット（每行一筆，支援連結HTML）
+      <textarea id="credits" placeholder="例：サークル：ファウナス\n声優：餅梨あむ"></textarea>
+    </label>
+    <label>
+      作品紹介（可輸入多行文字）
+      <textarea id="intro" placeholder="請輸入作品介紹"></textarea>
     </label>
     <div class="row">
       <label>
@@ -43,6 +47,10 @@
         <input type="text" id="link2" placeholder="https://example.com" />
       </label>
     </div>
+    <label>
+      封面圖片 URL（可選）
+      <input type="text" id="coverImageUrl" placeholder="https://...jpg" />
+    </label>
     <div>
       <button id="submitBtn" type="submit">送出生成</button>
       <span id="result" class="muted"></span>
@@ -81,9 +89,11 @@
       try {
         const payload = {
           title: document.getElementById('title').value.trim(),
-          content: document.getElementById('content').value,
+          credits: document.getElementById('credits').value,
+          intro: document.getElementById('intro').value,
           link1: document.getElementById('link1').value.trim(),
-          link2: document.getElementById('link2').value.trim()
+          link2: document.getElementById('link2').value.trim(),
+          coverImageUrl: document.getElementById('coverImageUrl').value.trim()
         };
         const res = await fetch('/api/pages', {
           method: 'POST',
